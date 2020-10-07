@@ -1,0 +1,237 @@
+/*
+  ==============================================================================
+
+	This file contains the basic framework code for a JUCE plugin processor.
+
+  ==============================================================================
+*/
+
+#include "PluginProcessor.h"
+#include "PluginEditor.h"
+
+//==============================================================================
+TestVstAudioProcessor::TestVstAudioProcessor()
+#ifndef JucePlugin_PreferredChannelConfigurations
+	: AudioProcessor(BusesProperties()
+#if ! JucePlugin_IsMidiEffect
+#if ! JucePlugin_IsSynth
+		.withInput("Input", juce::AudioChannelSet::stereo(), true)
+#endif
+		.withOutput("Output", juce::AudioChannelSet::stereo(), true)
+#endif
+	), page_(0), lyrics_(0), progress_(0)
+#endif
+{
+
+}
+
+TestVstAudioProcessor::~TestVstAudioProcessor()
+{
+}
+
+//void TestVstAudioProcessor::addListener(Listener* listener) {
+//	this->addChangeListener(listener);
+//}
+//
+//void TestVstAudioProcessor::removeListener(Listener* listener) {
+//	this->removeChangeListener(listener);
+//}
+
+std::list<const char*>* TestVstAudioProcessor::getLyrics() {
+	juce::ScopedLock dataUpdate(dataUpdateLock_);
+	return lyrics_;
+}
+
+void TestVstAudioProcessor::setLyrics(std::list<const char*>* lyrics) {
+	juce::ScopedLock dataUpdate(dataUpdateLock_);
+	if (lyrics_ != 0) {
+		delete lyrics_;
+	}
+	lyrics_ = lyrics;	
+}
+
+int TestVstAudioProcessor::getPage() {
+	return page_;
+}
+
+void TestVstAudioProcessor::setPage(int page) {
+	page_ = page;
+}
+
+int TestVstAudioProcessor::getProgress() {
+	return progress_;
+}
+
+void TestVstAudioProcessor::setProgress(int progress) {
+	progress_ = progress;
+}
+
+//==============================================================================
+const juce::String TestVstAudioProcessor::getName() const
+{
+	return JucePlugin_Name;
+}
+
+bool TestVstAudioProcessor::acceptsMidi() const
+{
+#if JucePlugin_WantsMidiInput
+	return true;
+#else
+	return false;
+#endif
+}
+
+bool TestVstAudioProcessor::producesMidi() const
+{
+#if JucePlugin_ProducesMidiOutput
+	return true;
+#else
+	return false;
+#endif
+}
+
+bool TestVstAudioProcessor::isMidiEffect() const
+{
+#if JucePlugin_IsMidiEffect
+	return true;
+#else
+	return false;
+#endif
+}
+
+double TestVstAudioProcessor::getTailLengthSeconds() const
+{
+	return 0.0;
+}
+
+int TestVstAudioProcessor::getNumPrograms()
+{
+	return 1;   // NB: some hosts don't cope very well if you tell them there are 0 programs,
+				// so this should be at least 1, even if you're not really implementing programs.
+}
+
+int TestVstAudioProcessor::getCurrentProgram()
+{
+	return 0;
+}
+
+void TestVstAudioProcessor::setCurrentProgram(int index)
+{
+}
+
+const juce::String TestVstAudioProcessor::getProgramName(int index)
+{
+	return {};
+}
+
+void TestVstAudioProcessor::changeProgramName(int index, const juce::String& newName)
+{
+}
+
+//==============================================================================
+void TestVstAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
+{
+	// Use this method as the place to do any pre-playback
+	// initialisation that you need..
+}
+
+void TestVstAudioProcessor::releaseResources()
+{
+	// When playback stops, you can use this as an opportunity to free up any
+	// spare memory, etc.
+}
+
+#ifndef JucePlugin_PreferredChannelConfigurations
+bool TestVstAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
+{
+#if JucePlugin_IsMidiEffect
+	juce::ignoreUnused(layouts);
+	return true;
+#else
+	// This is the place where you check if the layout is supported.
+	// In this template code we only support mono or stereo.
+	if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
+		&& layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
+		return false;
+
+	// This checks if the input layout matches the output layout
+#if ! JucePlugin_IsSynth
+	if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
+		return false;
+#endif
+
+	return true;
+#endif
+}
+#endif
+
+void TestVstAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+{
+	juce::ScopedNoDenormals noDenormals;
+	auto totalNumInputChannels = getTotalNumInputChannels();
+	auto totalNumOutputChannels = getTotalNumOutputChannels();
+
+	// In case we have more outputs than inputs, this code clears any output
+	// channels that didn't contain input data, (because these aren't
+	// guaranteed to be empty - they may contain garbage).
+	// This is here to avoid people getting screaming feedback
+	// when they first compile a plugin, but obviously you don't need to keep
+	// this code if your algorithm always overwrites all the output channels.
+	for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+		buffer.clear(i, 0, buffer.getNumSamples());
+
+	// This is the place where you'd normally do the guts of your plugin's
+	// audio processing...
+	// Make sure to reset the state if your inner loop is processing
+	// the samples and the outer loop is handling the channels.
+	// Alternatively, you can process the samples with the channels
+	// interleaved by keeping the same state.
+	for (int channel = 0; channel < totalNumInputChannels; ++channel)
+	{
+		auto* channelData = buffer.getWritePointer(channel);
+
+		// ..do something to the data...
+	}
+
+	juce::ScopedLock dataUpdate(dataUpdateLock_);
+	int time;
+	juce::MidiMessage m;
+
+	for (juce::MidiBuffer::Iterator i(midiMessages); i.getNextEvent(m, time);) {
+		auto newLyrics = new std::list<const char*>();
+		newLyrics->push_back("Got MIDI?");
+		setLyrics(newLyrics);
+	}
+}
+
+//==============================================================================
+bool TestVstAudioProcessor::hasEditor() const
+{
+	return true; // (change this to false if you choose to not supply an editor)
+}
+
+juce::AudioProcessorEditor* TestVstAudioProcessor::createEditor()
+{
+	return new TestVstAudioProcessorEditor(*this);
+}
+
+//==============================================================================
+void TestVstAudioProcessor::getStateInformation(juce::MemoryBlock& destData)
+{
+	// You should use this method to store your parameters in the memory block.
+	// You could do that either as raw data, or use the XML or ValueTree classes
+	// as intermediaries to make it easy to save and load complex data.
+}
+
+void TestVstAudioProcessor::setStateInformation(const void* data, int sizeInBytes)
+{
+	// You should use this method to restore your parameters from this memory block,
+	// whose contents will have been created by the getStateInformation() call.
+}
+
+//==============================================================================
+// This creates new instances of the plugin..
+juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
+{
+	return new TestVstAudioProcessor();
+}

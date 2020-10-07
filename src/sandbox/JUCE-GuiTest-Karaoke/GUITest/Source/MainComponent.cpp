@@ -20,7 +20,7 @@ void MainComponent::paint(juce::Graphics& g)
 	auto height = getLocalBounds().getHeight();
 	auto width = getLocalBounds().getWidth();
 
-	auto lyrics = { "There's a place I like to go", "Everybody knows", "Leads me to temptation" };
+	auto lyrics = { "There's a place I like to go", "Everybody knows", "Leads me to temptootion" };
 
 	auto i = 0;
 
