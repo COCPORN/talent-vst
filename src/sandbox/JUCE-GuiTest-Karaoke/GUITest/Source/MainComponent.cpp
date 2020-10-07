@@ -5,7 +5,7 @@ using namespace juce;
 //==============================================================================
 MainComponent::MainComponent()
 {
-    setSize (1200, 800);
+	setSize(1200, 800);
 }
 
 MainComponent::~MainComponent()
@@ -22,7 +22,7 @@ void MainComponent::paint(juce::Graphics& g)
 
 	auto lyrics = { "There's a place I like to go", "Everybody knows", "Leads me to temptation" };
 
-	auto i = 0;	
+	auto i = 0;
 
 	auto segmentHeight = height / lyrics.size();
 
@@ -30,12 +30,12 @@ void MainComponent::paint(juce::Graphics& g)
 		// Render the grey parts first (the ones that we have not yet gotten to)
 		auto backGlyphArrangement = GlyphArrangement();
 
-		auto top = i * segmentHeight;		
+		auto top = i * segmentHeight;
 		backGlyphArrangement.addFittedText({ 46.0f }, lyric,
 			0,
-			top, 
-			width, 
-			segmentHeight, 
+			top,
+			width,
+			segmentHeight,
 			Justification::centred, 1, 1.0f);
 		i++;
 
@@ -62,9 +62,9 @@ void MainComponent::paint(juce::Graphics& g)
 
 		glyphArrangement.draw(g);
 	}
-	
+
 }
 
 void MainComponent::resized() {
-    
+
 }
