@@ -82,6 +82,7 @@ private:
 	std::vector<std::string> lyrics_;
 	int progress_;
 	juce::CriticalSection dataUpdateLock_;
+	int numMidiEvents_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TestVstAudioProcessor)
 };

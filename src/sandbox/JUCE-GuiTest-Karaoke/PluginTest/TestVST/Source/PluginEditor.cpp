@@ -35,12 +35,20 @@ TestVstAudioProcessorEditor::~TestVstAudioProcessorEditor()
 //
 //}
 
-
+// OK, so somewhat of a messy code, but it might work:
+// All data updated in the processor is set protected by the same critical section
+// as is blocked on in this method => Should lead to no race.
+// All semantics are copy => Should lead to no leak.
+// NOTE: This does NOT work with multiple editors. We should consider creating IPC 
+// with local sockets to remedy that, it would make this whole thing less dubious
 void TestVstAudioProcessorEditor::timerCallback() {
 	juce::CriticalSection& criticalSection = processor_.getDataUpdateCriticalSection();	
 	juce::ScopedLock dataUpdate(criticalSection);
 	auto dirty = processor_.getDirtyAndUpdate();
-	if (dirty == false) return;
+
+	if (dirty == false) {
+		return;
+	}
 
 	auto lyrics = processor_.getLyrics();
 	auto page = processor_.getPage();

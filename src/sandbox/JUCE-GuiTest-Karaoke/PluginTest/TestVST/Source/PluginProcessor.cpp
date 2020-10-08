@@ -19,7 +19,7 @@ TestVstAudioProcessor::TestVstAudioProcessor()
 #endif
 		.withOutput("Output", juce::AudioChannelSet::stereo(), true)
 #endif
-	), page_(0), lyrics_(0), progress_(0)
+	), page_(0), lyrics_(0), progress_(0), numMidiEvents_(0)
 #endif
 {
 
@@ -210,8 +210,9 @@ void TestVstAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 	juce::MidiMessage m;
 
 	for (juce::MidiBuffer::Iterator i(midiMessages); i.getNextEvent(m, time);) {
+		numMidiEvents_++;
 		auto newLyrics = std::vector<std::string>();
-		newLyrics.push_back("Got MIDI?");
+		newLyrics.push_back(std::string("Got MIDI? ") + std::to_string(numMidiEvents_));
 		setLyrics(newLyrics);
 	}
 }
