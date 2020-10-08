@@ -78,9 +78,11 @@ private:
     //==============================================================================	
 	bool dirty_;
 	bool latched_;
+	
 	int page_;
 	std::map<int, std::vector<std::string> > song_;
 	std::vector<std::string> currentLyrics_;
+	int lastControlValue_;
 	int progress_;
 	juce::CriticalSection dataUpdateLock_;
 	int numMidiEvents_;

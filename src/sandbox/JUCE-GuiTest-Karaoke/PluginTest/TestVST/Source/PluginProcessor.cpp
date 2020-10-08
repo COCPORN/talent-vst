@@ -19,7 +19,7 @@ TestVstAudioProcessor::TestVstAudioProcessor()
 #endif
 		.withOutput("Output", juce::AudioChannelSet::stereo(), true)
 #endif
-	), page_(0), currentLyrics_(0), progress_(0), numMidiEvents_(0), latched_(false)
+	), page_(0), currentLyrics_(0), progress_(0), numMidiEvents_(0), latched_(false), lastControlValue_(0)
 #endif
 {
 	std::vector<std::string> firstPage = { "There's a place I like to go", "Everybody knows", "Leads me to temptation" };
@@ -86,7 +86,9 @@ void TestVstAudioProcessor::setPage(int page) {
 		currentLyrics_ = std::vector<std::string>();
 	}
 	progress_ = 0;
-	latched_ = false;
+	if (lastControlValue_ != 0) {
+		latched_ = false;
+	}
 	dirty_ = true;
 }
 
@@ -208,33 +210,32 @@ bool TestVstAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) c
 
 void TestVstAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
-	juce::ScopedNoDenormals noDenormals;
-	auto totalNumInputChannels = getTotalNumInputChannels();
-	auto totalNumOutputChannels = getTotalNumOutputChannels();
+	//juce::ScopedNoDenormals noDenormals;
+	//auto totalNumInputChannels = getTotalNumInputChannels();
+	//auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-	// In case we have more outputs than inputs, this code clears any output
-	// channels that didn't contain input data, (because these aren't
-	// guaranteed to be empty - they may contain garbage).
-	// This is here to avoid people getting screaming feedback
-	// when they first compile a plugin, but obviously you don't need to keep
-	// this code if your algorithm always overwrites all the output channels.
-	for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-		buffer.clear(i, 0, buffer.getNumSamples());
+	//// In case we have more outputs than inputs, this code clears any output
+	//// channels that didn't contain input data, (because these aren't
+	//// guaranteed to be empty - they may contain garbage).
+	//// This is here to avoid people getting screaming feedback
+	//// when they first compile a plugin, but obviously you don't need to keep
+	//// this code if your algorithm always overwrites all the output channels.
+	//for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+	//	buffer.clear(i, 0, buffer.getNumSamples());
 
-	// This is the place where you'd normally do the guts of your plugin's
-	// audio processing...
-	// Make sure to reset the state if your inner loop is processing
-	// the samples and the outer loop is handling the channels.
-	// Alternatively, you can process the samples with the channels
-	// interleaved by keeping the same state.
-	for (int channel = 0; channel < totalNumInputChannels; ++channel)
-	{
-		auto* channelData = buffer.getWritePointer(channel);
+	//// This is the place where you'd normally do the guts of your plugin's
+	//// audio processing...
+	//// Make sure to reset the state if your inner loop is processing
+	//// the samples and the outer loop is handling the channels.
+	//// Alternatively, you can process the samples with the channels
+	//// interleaved by keeping the same state.
+	//for (int channel = 0; channel < totalNumInputChannels; ++channel)
+	//{
+	//	auto* channelData = buffer.getWritePointer(channel);
 
-		// ..do something to the data...
-	}
-
-	juce::ScopedLock dataUpdate(dataUpdateLock_);
+	//	// ..do something to the data...
+	//}
+	
 	int time;
 	juce::MidiMessage m;
 	auto dirty = false;
@@ -256,10 +257,11 @@ void TestVstAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 		else if (midiMessage.isControllerOfType(01)) {
 			// Make it so that the controller wheel must latch onto the bottom
 			// before the write on can start
+			lastControlValue_ = midiMessage.getControllerValue();
 			if (latched_ == true 
-				|| midiMessage.getControllerValue() < 1) {
+				|| lastControlValue_ < 1) {
 				latched_ = true;
-				progress = midiMessage.getControllerValue();
+				progress = lastControlValue_;
 				gotModWheelEvent = true;
 			}
 		}
