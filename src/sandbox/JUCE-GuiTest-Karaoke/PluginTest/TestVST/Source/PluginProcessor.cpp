@@ -171,12 +171,14 @@ void TestVstAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
 {
 	// Use this method as the place to do any pre-playback
 	// initialisation that you need..
+	setPage(0);
 }
 
 void TestVstAudioProcessor::releaseResources()
 {
 	// When playback stops, you can use this as an opportunity to free up any
 	// spare memory, etc.
+	setPage(0);
 }
 
 #ifndef JucePlugin_PreferredChannelConfigurations
@@ -238,6 +240,9 @@ void TestVstAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 
 	int noteNumber = 0;
 	int pageNumber = 0;
+	auto gotNoteOnEvent = false;
+	auto gotModWheelEvent = false;
+	int progress = 0;
 	for (const auto midiData : midiMessages)
 	{
 		const auto midiMessage = midiData.getMessage();
@@ -245,6 +250,11 @@ void TestVstAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 		if (midiMessage.isNoteOn()) {
 			noteNumber = midiMessage.getNoteNumber();
 			pageNumber = noteNumber - 35;
+			gotNoteOnEvent = true;
+		}
+		else if (midiMessage.isControllerOfType(01)) {
+			progress = midiMessage.getControllerValue();
+			gotModWheelEvent = true;
 		}
 
 		numMidiEvents_++;
@@ -257,9 +267,18 @@ void TestVstAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 	//}
 
 	if (dirty == true) {
-		if (pageNumber != 0 
-			&& page_ != pageNumber) {
-			setPage(pageNumber);
+		if (gotNoteOnEvent == true) {
+			if (pageNumber != page_) {
+				setPage(pageNumber);
+			}
+		}
+		if (gotModWheelEvent == true) {
+			// Only set progress if the current is larger than the previous
+			// Progress will be set back to zero on page change
+			if (progress_ != progress 
+				&& progress > progress_) {
+				setProgress(progress);
+			}
 		}
 		/*else {			
 			auto newLyrics = std::vector<std::string>();
