@@ -257,7 +257,7 @@ void TestVstAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 			// Make it so that the controller wheel must latch onto the bottom
 			// before the write on can start
 			if (latched_ == true 
-				|| midiMessage.getControllerValue() < 2) {
+				|| midiMessage.getControllerValue() < 1) {
 				latched_ = true;
 				progress = midiMessage.getControllerValue();
 				gotModWheelEvent = true;
