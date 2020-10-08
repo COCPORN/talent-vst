@@ -13,7 +13,7 @@ using namespace juce;
 
 //==============================================================================
 TestVstAudioProcessorEditor::TestVstAudioProcessorEditor (TestVstAudioProcessor& p)
-    : AudioProcessorEditor (&p), processor_(p), lyrics_(0), page_(0), progress_(0)
+    : AudioProcessorEditor (&p), processor_(p), lyrics_(0), page_(0), progress_(0), activeLine_(0)
 {		
 	setResizable(true, true);
 	startTimerHz(60);
@@ -50,13 +50,14 @@ void TestVstAudioProcessorEditor::timerCallback() {
 		return;
 	}
 
-	auto lyrics = processor_.getCurrentLyrics();
-	auto page = processor_.getPage();
-	auto progress = processor_.getProgress();
-	
-	lyrics_ = lyrics;
-	progress_ = progress;
-	page_ = page;	
+	lyrics_ = processor_.getCurrentLyrics();
+	page_ = processor_.getPage();
+	progress_ = processor_.getProgress();
+	activeLine_ = processor_.getActiveLine();
+
+	if (activeLine_ > lyrics_.size()) {
+		activeLine_ = 0;
+	}
 
 	repaint();
 }
@@ -151,7 +152,12 @@ void TestVstAudioProcessorEditor::paint (juce::Graphics& g)
 		
 		auto bounds = backGlyphArrangement.getBoundingBox(0, backGlyphArrangement.getNumGlyphs(), true);
 
-		g.setColour(Colours::grey);
+		if (activeLine_ == 0 || i != activeLine_ - 1) {
+			g.setColour(Colours::grey);			
+		}
+		else {
+			g.setColour(Colours::lightsteelblue);
+		}
 
 		backGlyphArrangement.draw(g);					
 

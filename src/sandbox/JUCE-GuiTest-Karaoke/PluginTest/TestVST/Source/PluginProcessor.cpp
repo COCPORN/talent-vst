@@ -24,9 +24,11 @@ TestVstAudioProcessor::TestVstAudioProcessor()
 {
 	std::vector<std::string> firstPage = { "There's a place I like to go", "Everybody knows", "Leads me to temptation" };
 	std::vector<std::string> secondPage = { "When all eyes are trained on me", "And they see what they want to see", "Single beat across the nation" };
+	std::vector<std::string> thirdPage = { "And you show me what to do", "And you show me what to do" , "And you show me what to do" , "And you show me what to do" };
 	std::map<int, std::vector<std::string> > song = {
 		{ 1, firstPage },
-		{ 2, secondPage }
+		{ 2, secondPage },
+		{ 3, thirdPage }
 	};
 	setSong(song);
 }
@@ -100,6 +102,29 @@ void TestVstAudioProcessor::setProgress(int progress) {
 	juce::ScopedLock dataUpdate(dataUpdateLock_);
 	progress_ = progress;
 	dirty_ = true;
+}
+
+void TestVstAudioProcessor::setActiveLine(int activeLine)
+{
+	juce::ScopedLock dataUpdate(dataUpdateLock_);
+	activeLine_ = activeLine;
+	dirty_ = true;
+}
+
+void TestVstAudioProcessor::removeActiveLine(int activeLine)
+{
+	// Only remove the active line if it matches the one previously
+	// set as this will support overlapping notes for lines
+	if (activeLine == activeLine_) {
+		juce::ScopedLock dataUpdate(dataUpdateLock_);
+		activeLine_ = 0;
+		dirty_ = true;
+	}
+}
+
+int TestVstAudioProcessor::getActiveLine()
+{
+	return activeLine_;
 }
 
 juce::CriticalSection& TestVstAudioProcessor::getDataUpdateCriticalSection() {
@@ -210,51 +235,25 @@ bool TestVstAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) c
 
 void TestVstAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
-	//juce::ScopedNoDenormals noDenormals;
-	//auto totalNumInputChannels = getTotalNumInputChannels();
-	//auto totalNumOutputChannels = getTotalNumOutputChannels();
-
-	//// In case we have more outputs than inputs, this code clears any output
-	//// channels that didn't contain input data, (because these aren't
-	//// guaranteed to be empty - they may contain garbage).
-	//// This is here to avoid people getting screaming feedback
-	//// when they first compile a plugin, but obviously you don't need to keep
-	//// this code if your algorithm always overwrites all the output channels.
-	//for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-	//	buffer.clear(i, 0, buffer.getNumSamples());
-
-	//// This is the place where you'd normally do the guts of your plugin's
-	//// audio processing...
-	//// Make sure to reset the state if your inner loop is processing
-	//// the samples and the outer loop is handling the channels.
-	//// Alternatively, you can process the samples with the channels
-	//// interleaved by keeping the same state.
-	//for (int channel = 0; channel < totalNumInputChannels; ++channel)
-	//{
-	//	auto* channelData = buffer.getWritePointer(channel);
-
-	//	// ..do something to the data...
-	//}
-	
 	int time;
 	juce::MidiMessage m;
 	auto dirty = false;
 
 	int noteNumber = 0;
 	int pageNumber = 0;
+	int activeLine = 0;
 	auto gotNoteOnEvent = false;
+	auto gotNoteOffEvent = false;
+	auto gotPageChangeEvent = false;
+	auto gotSetActiveLineEvent = false;
+	auto gotRemoveActiveLineEvent = false;
 	auto gotModWheelEvent = false;
 	int progress = 0;
 	for (const auto midiData : midiMessages)
 	{
 		const auto midiMessage = midiData.getMessage();
 
-		if (midiMessage.isNoteOn()) {
-			noteNumber = midiMessage.getNoteNumber();
-			pageNumber = noteNumber - 35;
-			gotNoteOnEvent = true;
-		}
-		else if (midiMessage.isControllerOfType(01)) {
+		if (midiMessage.isControllerOfType(01)) {
 			// Make it so that the controller wheel must latch onto the bottom
 			// before the write on can start
 			lastControlValue_ = midiMessage.getControllerValue();
@@ -263,6 +262,37 @@ void TestVstAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 				latched_ = true;
 				progress = lastControlValue_;
 				gotModWheelEvent = true;
+			}
+		}
+		else if (midiMessage.isNoteOn()) {
+			noteNumber = midiMessage.getNoteNumber();
+			gotNoteOnEvent = true;
+
+			// 35 allows you to set the blank page
+
+			// Set active page
+			if (noteNumber >= 35 && noteNumber < 36 + 24) {
+				pageNumber = noteNumber - 35;
+				gotPageChangeEvent = true;
+			}
+
+			// Set active line
+			else if (noteNumber >= 60 && noteNumber < 60 + 6) {
+				gotSetActiveLineEvent = true;
+				activeLine = noteNumber - 59;
+				setActiveLine(activeLine);
+			}
+		}
+		else if (midiMessage.isNoteOff()) {
+			noteNumber = midiMessage.getNoteNumber();
+			gotNoteOffEvent = true;
+
+			// Turn off active line
+			if (noteNumber >= 36 + 24 && noteNumber < 36 + 24 + 6) {
+
+				gotRemoveActiveLineEvent = true;
+				activeLine = noteNumber - 59;
+				removeActiveLine(activeLine);
 			}
 		}
 
@@ -276,7 +306,7 @@ void TestVstAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 	//}
 
 	if (dirty == true) {
-		if (gotNoteOnEvent == true) {
+		if (gotPageChangeEvent == true) {
 			if (pageNumber != page_) {
 				setPage(pageNumber);
 			}
@@ -287,11 +317,7 @@ void TestVstAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 				setProgress(progress);
 			}
 		}
-		/*else {
-			auto newLyrics = std::vector<std::string>();
-			newLyrics.push_back(std::string("Got MIDI? ") + std::to_string(numMidiEvents_) + " " + std::to_string(noteNumber));
-			setLyrics(newLyrics);
-		}*/
+
 	}
 }
 

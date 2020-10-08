@@ -42,6 +42,11 @@ public:
 	void setPage(int page);
 	int getProgress();
 	void setProgress(int progress);
+
+	void setActiveLine(int activeLine);
+	void removeActiveLine(int activeLine);
+	int getActiveLine();
+
 	bool getDirtyAndUpdate();
 	juce::CriticalSection& getDataUpdateCriticalSection();
 
@@ -80,6 +85,7 @@ private:
 	bool latched_;
 	
 	int page_;
+	int activeLine_;
 	std::map<int, std::vector<std::string> > song_;
 	std::vector<std::string> currentLyrics_;
 	int lastControlValue_;

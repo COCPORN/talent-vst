@@ -39,7 +39,7 @@ private:
 	std::vector<std::string> lyrics_;
 	int page_;
 	int progress_;
-
+	int activeLine_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (TestVstAudioProcessorEditor)
 };
