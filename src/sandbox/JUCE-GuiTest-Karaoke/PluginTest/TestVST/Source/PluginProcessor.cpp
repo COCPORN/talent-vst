@@ -273,10 +273,8 @@ void TestVstAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 			}
 		}
 		if (gotModWheelEvent == true) {
-			// Only set progress if the current is larger than the previous
-			// Progress will be set back to zero on page change
-			if (progress_ != progress 
-				&& progress > progress_) {
+
+			if (progress_ != progress) {
 				setProgress(progress);
 			}
 		}
