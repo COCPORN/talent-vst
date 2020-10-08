@@ -50,7 +50,7 @@ void TestVstAudioProcessorEditor::timerCallback() {
 		return;
 	}
 
-	auto lyrics = processor_.getLyrics();
+	auto lyrics = processor_.getCurrentLyrics();
 	auto page = processor_.getPage();
 	auto progress = processor_.getProgress();
 	

@@ -33,11 +33,10 @@ public:
 		virtual void pageChanged(TestVstAudioProcessor* processor) = 0;
 	};
 
+	void setSong(std::map<int, std::vector<std::string> > & song);
+	std::map<int, std::vector<std::string> >& getSong();
 
-	//void addListener(Listener* listener);
-	//void removeListener(Listener* listener);
-
-	std::vector<std::string>& getLyrics();
+	std::vector<std::string>& getCurrentLyrics();
 	void setLyrics(std::vector<std::string> &lyrics);
 	int getPage();
 	void setPage(int page);
@@ -79,7 +78,8 @@ private:
     //==============================================================================	
 	bool dirty_;
 	int page_;
-	std::vector<std::string> lyrics_;
+	std::map<int, std::vector<std::string> > song_;
+	std::vector<std::string> currentLyrics_;
 	int progress_;
 	juce::CriticalSection dataUpdateLock_;
 	int numMidiEvents_;

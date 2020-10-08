@@ -19,10 +19,16 @@ TestVstAudioProcessor::TestVstAudioProcessor()
 #endif
 		.withOutput("Output", juce::AudioChannelSet::stereo(), true)
 #endif
-	), page_(0), lyrics_(0), progress_(0), numMidiEvents_(0)
+	), page_(0), currentLyrics_(0), progress_(0), numMidiEvents_(0)
 #endif
 {
-
+	std::vector<std::string> firstPage = { "There's a place I like to go", "Everybody knows", "Leads me to temptation" };
+	std::vector<std::string> secondPage = { "When all eyes are trained on me", "And they see what they want to see", "Single beat across the nation" };
+	std::map<int, std::vector<std::string> > song = {
+		{ 1, firstPage },
+		{ 2, secondPage }
+	};
+	setSong(song);
 }
 
 TestVstAudioProcessor::~TestVstAudioProcessor()
@@ -37,8 +43,8 @@ TestVstAudioProcessor::~TestVstAudioProcessor()
 //	this->removeChangeListener(listener);
 //}
 
-std::vector<std::string>& TestVstAudioProcessor::getLyrics() {	
-	return lyrics_;
+std::vector<std::string>& TestVstAudioProcessor::getCurrentLyrics() {
+	return currentLyrics_;
 }
 
 bool TestVstAudioProcessor::getDirtyAndUpdate() {
@@ -48,9 +54,19 @@ bool TestVstAudioProcessor::getDirtyAndUpdate() {
 	return r_dirty;
 }
 
-void TestVstAudioProcessor::setLyrics(std::vector<std::string> &lyrics) {
-	juce::ScopedLock dataUpdate(dataUpdateLock_);	
-	lyrics_ = lyrics;	
+void TestVstAudioProcessor::setSong(std::map<int, std::vector<std::string> >& song) {
+	juce::ScopedLock dataUpdate(dataUpdateLock_);
+	dirty_ = true;
+	song_ = song;
+}
+
+std::map<int, std::vector<std::string> >& TestVstAudioProcessor::getSong() {
+	return song_;
+}
+
+void TestVstAudioProcessor::setLyrics(std::vector<std::string>& lyrics) {
+	juce::ScopedLock dataUpdate(dataUpdateLock_);
+	currentLyrics_ = lyrics;
 	dirty_ = true;
 }
 
@@ -61,6 +77,16 @@ int TestVstAudioProcessor::getPage() {
 void TestVstAudioProcessor::setPage(int page) {
 	juce::ScopedLock dataUpdate(dataUpdateLock_);
 	page_ = page;
+	auto mapIterator = song_.find(page);
+
+	if (mapIterator != song_.end()) {
+		currentLyrics_ = mapIterator->second;
+		progress_ = 0;
+	}
+	else {
+		currentLyrics_ = std::vector<std::string>();
+	}
+
 	dirty_ = true;
 }
 
@@ -208,12 +234,38 @@ void TestVstAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 	juce::ScopedLock dataUpdate(dataUpdateLock_);
 	int time;
 	juce::MidiMessage m;
+	auto dirty = false;
 
-	for (juce::MidiBuffer::Iterator i(midiMessages); i.getNextEvent(m, time);) {
+	int noteNumber = 0;
+	int pageNumber = 0;
+	for (const auto midiData : midiMessages)
+	{
+		const auto midiMessage = midiData.getMessage();
+
+		if (midiMessage.isNoteOn()) {
+			noteNumber = midiMessage.getNoteNumber();
+			pageNumber = noteNumber - 35;
+		}
+
 		numMidiEvents_++;
-		auto newLyrics = std::vector<std::string>();
-		newLyrics.push_back(std::string("Got MIDI? ") + std::to_string(numMidiEvents_));
-		setLyrics(newLyrics);
+		dirty = true;
+	}
+
+	//for (juce::MidiBuffer::Iterator i(midiMessages); i.getNextEvent(m, time);) {
+	//	numMidiEvents_++;
+	//	dirty = true;		
+	//}
+
+	if (dirty == true) {
+		if (pageNumber != 0 
+			&& page_ != pageNumber) {
+			setPage(pageNumber);
+		}
+		/*else {			
+			auto newLyrics = std::vector<std::string>();
+			newLyrics.push_back(std::string("Got MIDI? ") + std::to_string(numMidiEvents_) + " " + std::to_string(noteNumber));
+			setLyrics(newLyrics);
+		}*/
 	}
 }
 
