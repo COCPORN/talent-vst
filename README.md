@@ -11,6 +11,7 @@ Initial version:
 - The lyrics are entered as separate pages, either using JUCE tabs or Markdown-like syntax
 - Swapping pages is done using MIDI note events (C2 for page 1, D2 for page 2, etc)
 - It should also be possible to add pitch bend to describe how far along the current page the timing has come
+- The state of the plugin must be persisted with the project (settings and lyrics, etc)
 
 # Sandbox
 
