@@ -36,7 +36,7 @@ private:
     // access the processor object that created it.
     TestVstAudioProcessor& processor_;
 
-	std::list<const char*> *lyrics_;
+	std::vector<std::string> lyrics_;
 	int page_;
 	int progress_;
 

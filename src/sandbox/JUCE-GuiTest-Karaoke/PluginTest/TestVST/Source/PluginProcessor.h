@@ -37,12 +37,14 @@ public:
 	//void addListener(Listener* listener);
 	//void removeListener(Listener* listener);
 
-	std::list<const char*>* getLyrics();
-	void setLyrics(std::list<const char*> *lyrics);
+	std::vector<std::string>& getLyrics();
+	void setLyrics(std::vector<std::string> &lyrics);
 	int getPage();
 	void setPage(int page);
 	int getProgress();
 	void setProgress(int progress);
+	bool getDirtyAndUpdate();
+	juce::CriticalSection& getDataUpdateCriticalSection();
 
    #ifndef JucePlugin_PreferredChannelConfigurations
     bool isBusesLayoutSupported (const BusesLayout& layouts) const override;
@@ -75,8 +77,9 @@ public:
 
 private:
     //==============================================================================	
+	bool dirty_;
 	int page_;
-	std::list<const char*>* lyrics_;
+	std::vector<std::string> lyrics_;
 	int progress_;
 	juce::CriticalSection dataUpdateLock_;
 

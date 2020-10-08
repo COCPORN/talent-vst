@@ -37,31 +37,20 @@ TestVstAudioProcessorEditor::~TestVstAudioProcessorEditor()
 
 
 void TestVstAudioProcessorEditor::timerCallback() {
+	juce::CriticalSection& criticalSection = processor_.getDataUpdateCriticalSection();	
+	juce::ScopedLock dataUpdate(criticalSection);
+	auto dirty = processor_.getDirtyAndUpdate();
+	if (dirty == false) return;
+
 	auto lyrics = processor_.getLyrics();
 	auto page = processor_.getPage();
 	auto progress = processor_.getProgress();
-
-	auto dirty = false;
-
-	if (lyrics_ != lyrics) {
-		lyrics_ = lyrics;
-		dirty = true;
-	}
-
-	if (page_ != page) {
-		page_ = page;
-		dirty = true;
-	}
-
-	if (progress_ != progress) {
-		progress_ = progress;
-		dirty = true;
-	}
 	
-	if (dirty == true) {
-		repaint();
-	}
+	lyrics_ = lyrics;
+	progress_ = progress;
+	page_ = page;	
 
+	repaint();
 }
 
 //==============================================================================
@@ -70,19 +59,19 @@ void TestVstAudioProcessorEditor::paint (juce::Graphics& g)
 	g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
 
 
-	if (lyrics_ == NULL) {
-		return;
-	}
-
 	auto height = getLocalBounds().getHeight();
 	auto width = getLocalBounds().getWidth();
 
+	if (lyrics_.size() == 0)
+	{
+		return;
+	}
 
 	auto i = 0;
 
-	auto segmentHeight = height / lyrics_->size();
+	auto segmentHeight = height / lyrics_.size();
 
-	for (auto lyric : *lyrics_) {
+	for (auto lyric : lyrics_) {
 		// Render the grey parts first (the ones that we have not yet gotten to)
 		auto backGlyphArrangement = GlyphArrangement();
 
@@ -122,5 +111,5 @@ void TestVstAudioProcessorEditor::paint (juce::Graphics& g)
 
 void TestVstAudioProcessorEditor::resized()
 {
-	repaint();
+	//repaint();
 }
