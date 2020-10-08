@@ -61,10 +61,14 @@ void TestVstAudioProcessorEditor::timerCallback() {
 	repaint();
 }
 
+// Extra weight to add to the line, so that there is a gap in the CC progression
+// Should be grabbed from config
+const int lineWeight = 10;
+
 int totalCharacters(std::vector<std::string> lyrics) {
 	int r_total = 0;
 	for (auto lyric : lyrics) {
-		r_total += lyric.length();
+		r_total += lyric.length() + lineWeight;
 	}
 	return r_total;
 }
@@ -88,15 +92,22 @@ std::vector<std::string> getWhiteCharacters(std::vector<std::string>& originalLy
 		return r_whiteCharacters;
 	}
 
+	std::vector<std::string> weightedLyrics;
+
+	// Add lineweight
+	for (const auto lyric : originalLyrics) {
+		weightedLyrics.push_back(lyric + std::string(lineWeight, ' '));
+	}
+
 	auto charactersLeft = numWhiteCharacters;
 
-	for (auto lyric : originalLyrics) {
+	for (auto lyric : weightedLyrics) {
 		if (lyric.length() < charactersLeft) {
-			r_whiteCharacters.push_back(lyric);
+			r_whiteCharacters.push_back(lyric.substr(0, lyric.length() - lineWeight));
 			charactersLeft -= lyric.length();
 		}
 		else if (lyric.length() == charactersLeft) {
-			r_whiteCharacters.push_back(lyric);
+			r_whiteCharacters.push_back(lyric.substr(0, lyric.length() - lineWeight));
 			return r_whiteCharacters;
 		}
 		else {
