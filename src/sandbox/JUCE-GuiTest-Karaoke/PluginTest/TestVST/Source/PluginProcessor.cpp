@@ -19,7 +19,7 @@ TestVstAudioProcessor::TestVstAudioProcessor()
 #endif
 		.withOutput("Output", juce::AudioChannelSet::stereo(), true)
 #endif
-	), page_(0), currentLyrics_(0), progress_(0), numMidiEvents_(0)
+	), page_(0), currentLyrics_(0), progress_(0), numMidiEvents_(0), latched_(false)
 #endif
 {
 	std::vector<std::string> firstPage = { "There's a place I like to go", "Everybody knows", "Leads me to temptation" };
@@ -81,12 +81,12 @@ void TestVstAudioProcessor::setPage(int page) {
 
 	if (mapIterator != song_.end()) {
 		currentLyrics_ = mapIterator->second;
-		progress_ = 0;
 	}
 	else {
 		currentLyrics_ = std::vector<std::string>();
 	}
-
+	progress_ = 0;
+	latched_ = false;
 	dirty_ = true;
 }
 
@@ -172,6 +172,7 @@ void TestVstAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
 	// Use this method as the place to do any pre-playback
 	// initialisation that you need..
 	setPage(0);
+	latched_ = true;
 }
 
 void TestVstAudioProcessor::releaseResources()
@@ -253,8 +254,14 @@ void TestVstAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 			gotNoteOnEvent = true;
 		}
 		else if (midiMessage.isControllerOfType(01)) {
-			progress = midiMessage.getControllerValue();
-			gotModWheelEvent = true;
+			// Make it so that the controller wheel must latch onto the bottom
+			// before the write on can start
+			if (latched_ == true 
+				|| midiMessage.getControllerValue() < 2) {
+				latched_ = true;
+				progress = midiMessage.getControllerValue();
+				gotModWheelEvent = true;
+			}
 		}
 
 		numMidiEvents_++;
@@ -278,7 +285,7 @@ void TestVstAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 				setProgress(progress);
 			}
 		}
-		/*else {			
+		/*else {
 			auto newLyrics = std::vector<std::string>();
 			newLyrics.push_back(std::string("Got MIDI? ") + std::to_string(numMidiEvents_) + " " + std::to_string(noteNumber));
 			setLyrics(newLyrics);

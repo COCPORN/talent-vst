@@ -77,6 +77,7 @@ public:
 private:
     //==============================================================================	
 	bool dirty_;
+	bool latched_;
 	int page_;
 	std::map<int, std::vector<std::string> > song_;
 	std::vector<std::string> currentLyrics_;
